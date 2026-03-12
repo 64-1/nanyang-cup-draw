@@ -173,7 +173,8 @@ function buildRevealOrder(groups) {
 }
 
 export default function NanyangCupGroupDrawApp() {
-  const [groupCount, setGroupCount] = useState(7);
+  const [groupCount, setGroupCount] = useState(8);
+  const [groupCountInput, setGroupCountInput] = useState("8");
   const [seedInput, setSeedInput] = useState(String(Date.now()).slice(-6));
   const [currentSeed, setCurrentSeed] = useState(Number(String(Date.now()).slice(-6)));
   const [teams] = useState(DEFAULT_TEAMS);
@@ -183,6 +184,7 @@ export default function NanyangCupGroupDrawApp() {
   const [activeReveal, setActiveReveal] = useState(null);
   const [rollingTeam, setRollingTeam] = useState("");
   const [rollingGroupIndex, setRollingGroupIndex] = useState(null);
+  const [prefersDark, setPrefersDark] = useState(() => window.matchMedia("(prefers-color-scheme: dark)").matches);
 
   const intervalRef = useRef(null);
   const timeoutRef = useRef(null);
@@ -223,10 +225,48 @@ export default function NanyangCupGroupDrawApp() {
     };
   }, []);
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const updateTheme = (event) => {
+      const isDark = event.matches;
+      setPrefersDark(isDark);
+      document.documentElement.classList.toggle("dark", isDark);
+      document.documentElement.style.colorScheme = isDark ? "dark" : "light";
+    };
+
+    updateTheme(mediaQuery);
+    mediaQuery.addEventListener("change", updateTheme);
+
+    return () => {
+      mediaQuery.removeEventListener("change", updateTheme);
+    };
+  }, []);
+
+  useEffect(() => {
+    setGroupCountInput(String(groupCount));
+  }, [groupCount]);
+
   const applySeed = () => {
     if (isAnimating) return;
     const parsed = Number(seedInput.replace(/\D/g, "").slice(0, 9) || Date.now().toString().slice(-6));
     setCurrentSeed(parsed || 1);
+  };
+
+  const commitGroupCount = () => {
+    if (isAnimating) {
+      setGroupCountInput(String(groupCount));
+      return;
+    }
+
+    if (groupCountInput.trim() === "") {
+      setGroupCountInput(String(groupCount));
+      return;
+    }
+
+    const parsed = Number(groupCountInput);
+    const safeValue = Math.max(2, Math.min(16, Number.isNaN(parsed) ? groupCount : parsed));
+    setGroupCount(safeValue);
+    setGroupCountInput(String(safeValue));
   };
 
   const redraw = () => {
@@ -316,20 +356,23 @@ export default function NanyangCupGroupDrawApp() {
   };
 
   return (
-    <div className="min-h-screen overflow-hidden bg-[#070816] text-white">
+    <div className={`min-h-screen overflow-hidden ${prefersDark ? "bg-[#070816] text-white" : "bg-slate-100 text-slate-950"}`}>
       <div className="pointer-events-none absolute inset-0">
         <NeonOrb className="left-[-5rem] top-[-3rem] h-72 w-72 bg-fuchsia-500/20" />
         <NeonOrb className="right-[-3rem] top-20 h-80 w-80 bg-cyan-400/20" />
         <NeonOrb className="bottom-[-8rem] left-1/3 h-96 w-96 bg-violet-500/10" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_30%),linear-gradient(180deg,rgba(10,14,35,0.2),rgba(7,8,22,1))]" />
-        <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:28px_28px]" />
+        <div className={`absolute inset-0 ${prefersDark
+          ? "bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_30%),linear-gradient(180deg,rgba(10,14,35,0.2),rgba(7,8,22,1))]"
+          : "bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.9),transparent_26%),linear-gradient(180deg,rgba(244,247,255,0.96),rgba(226,232,240,0.92))]"}`
+        } />
+        <div className={`absolute inset-0 [background-image:linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:28px_28px] ${prefersDark ? "opacity-20" : "opacity-30 [background-image:linear-gradient(rgba(15,23,42,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,0.06)_1px,transparent_1px)]"}`} />
       </div>
 
       <div className="relative mx-auto max-w-7xl p-4 md:p-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-[32px] border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl"
+          className="relative overflow-hidden rounded-[32px] border border-slate-200/80 bg-white/80 shadow-2xl backdrop-blur-xl dark:border-white/10 dark:bg-white/5"
         >
           <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(168,85,247,0.18),rgba(34,211,238,0.08),transparent_60%)]" />
           <div className="relative grid gap-6 p-6 md:p-8 lg:grid-cols-[1.45fr_0.95fr] lg:items-end">
@@ -339,14 +382,14 @@ export default function NanyangCupGroupDrawApp() {
                 NANYANG CUP 2026
               </div>
               <div className="space-y-3">
-                <h1 className="max-w-3xl text-4xl font-black tracking-tight text-white md:text-6xl">
+                <h1 className="max-w-3xl text-4xl font-black tracking-tight text-slate-950 dark:text-white md:text-6xl">
                   小组赛抽签
                   <span className="ml-3 bg-gradient-to-r from-fuchsia-300 via-cyan-300 to-violet-300 bg-clip-text text-transparent">
                     赛事控制台
                   </span>
                 </h1>
-                <p className="max-w-2xl text-sm leading-7 text-slate-300 md:text-base">
-                  2026“南洋杯”王者荣耀友谊大赛专用抽签页面。已载入 28 支队伍，默认采用 7 组 × 4 队模式，并自动生成每组单循环赛程，适合官网展示、直播抽签与裁判对阵发布。
+                <p className="max-w-2xl text-sm leading-7 text-slate-600 dark:text-slate-300 md:text-base">
+                  2026“南洋杯”王者荣耀友谊大赛专用抽签页面。已载入 28 支队伍，默认采用 8 组分组模式，并自动生成每组单循环赛程，适合官网展示、直播抽签与裁判对阵发布。
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
@@ -367,39 +410,49 @@ export default function NanyangCupGroupDrawApp() {
 
             <div className="relative">
               <div className="absolute inset-0 rounded-[28px] bg-gradient-to-br from-fuchsia-500/20 via-cyan-400/10 to-transparent blur-xl" />
-              <div className="relative rounded-[28px] border border-white/10 bg-[#0e1328]/80 p-5 shadow-2xl backdrop-blur-xl">
+              <div className="relative rounded-[28px] border border-slate-200/80 bg-white/90 p-5 shadow-2xl backdrop-blur-xl dark:border-white/10 dark:bg-[#0e1328]/80">
                 <div className="mb-4 flex items-center justify-between">
                   <div>
-                    <div className="text-lg font-bold text-white">裁判控制面板</div>
-                    <div className="text-sm text-slate-400">公开抽签时可直接使用</div>
+                    <div className="text-lg font-bold text-slate-950 dark:text-white">裁判控制面板</div>
+                    <div className="text-sm text-slate-500 dark:text-slate-400">公开抽签时可直接使用</div>
                   </div>
-                  <div className="rounded-full border border-white/10 bg-white/5 p-2">
+                  <div className="rounded-full border border-slate-200/80 bg-slate-100/80 p-2 dark:border-white/10 dark:bg-white/5">
                     <Shield className="h-5 w-5 text-cyan-300" />
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-300">小组数量</label>
+                    <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">小组数量</label>
                     <Input
-                      type="number"
-                      min={2}
-                      max={16}
-                      value={groupCount}
-                      onChange={(e) => setGroupCount(Math.max(2, Math.min(16, Number(e.target.value) || 2)))}
-                      className="rounded-2xl border-white/10 bg-white/5 text-white placeholder:text-slate-500"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={groupCountInput}
+                      onChange={(e) => {
+                        const nextValue = e.target.value.replace(/\D/g, "");
+                        setGroupCountInput(nextValue);
+                      }}
+                      onBlur={commitGroupCount}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          commitGroupCount();
+                        }
+                      }}
+                      className="rounded-2xl border-slate-200/80 bg-white text-slate-950 placeholder:text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-500"
                       disabled={isAnimating}
                     />
-                    <p className="mt-2 text-xs text-slate-500">28 队推荐 7 组，也可自定义其他分组方案。</p>
+                    <p className="mt-2 text-xs text-slate-500 dark:text-slate-500">28 队推荐 8 组，也可自定义其他分组方案。</p>
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-300">抽签种子</label>
+                    <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">抽签种子</label>
                     <div className="flex gap-2">
                       <Input
                         value={seedInput}
                         onChange={(e) => setSeedInput(e.target.value)}
-                        className="rounded-2xl border-white/10 bg-white/5 text-white placeholder:text-slate-500"
+                        className="rounded-2xl border-slate-200/80 bg-white text-slate-950 placeholder:text-slate-400 dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-500"
                         placeholder="输入数字即可复现"
                         disabled={isAnimating}
                       />
@@ -473,9 +526,9 @@ export default function NanyangCupGroupDrawApp() {
                   <Trophy className="h-4 w-4" />
                   Live Draw
                 </div>
-                <div className="mt-1 text-lg font-bold text-white">抽签滚动中，请锁定当前落位</div>
+                <div className="mt-1 text-lg font-bold text-slate-950 dark:text-white">抽签滚动中，请锁定当前落位</div>
               </div>
-              <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+              <div className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white/60 px-4 py-3 dark:border-white/10 dark:bg-black/20">
                 <div className="rounded-full border border-amber-300/30 bg-amber-300/15 px-3 py-1 text-sm font-black text-amber-100">
                   {rollingGroupIndex !== null ? `${groups[rollingGroupIndex]?.name} 落位中` : "等待中"}
                 </div>
@@ -484,7 +537,7 @@ export default function NanyangCupGroupDrawApp() {
                   initial={{ opacity: 0.35, y: 8, scale: 0.98 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   transition={{ duration: 0.12 }}
-                  className="min-w-[180px] rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-center text-sm font-bold text-white md:min-w-[260px]"
+                  className="min-w-[180px] rounded-xl border border-slate-200/80 bg-white/80 px-4 py-2 text-center text-sm font-bold text-slate-950 dark:border-white/10 dark:bg-white/10 dark:text-white md:min-w-[260px]"
                 >
                   {rollingTeam || "抽签准备中"}
                 </motion.div>
@@ -494,7 +547,7 @@ export default function NanyangCupGroupDrawApp() {
         )}
 
         <Tabs defaultValue="draw" className="mt-6 space-y-5">
-          <TabsList className="grid w-full grid-cols-3 rounded-2xl border border-white/10 bg-white/5 p-1 backdrop-blur-md">
+          <TabsList className="grid w-full grid-cols-3 rounded-2xl border border-slate-200/80 bg-white/80 p-1 backdrop-blur-md dark:border-white/10 dark:bg-white/5">
             <TabsTrigger
               value="draw"
               className="rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-fuchsia-500 data-[state=active]:to-violet-500 data-[state=active]:text-white"
@@ -532,10 +585,10 @@ export default function NanyangCupGroupDrawApp() {
                       transition={{ delay: groupIndex * 0.04 }}
                     >
                       <Card
-                        className={`group relative h-full overflow-hidden rounded-[28px] border bg-white/5 shadow-xl backdrop-blur-xl transition-all duration-300 ${
+                        className={`group relative h-full overflow-hidden rounded-[28px] border bg-white/80 shadow-xl backdrop-blur-xl transition-all duration-300 dark:bg-white/5 ${
                           isActiveGroup
                             ? "border-amber-400/50 shadow-amber-500/10"
-                            : "border-white/10 hover:-translate-y-1 hover:border-fuchsia-400/30 hover:bg-white/[0.07]"
+                            : "border-slate-200/80 hover:-translate-y-1 hover:border-fuchsia-400/30 hover:bg-white dark:border-white/10 dark:hover:bg-white/[0.07]"
                         }`}
                       >
                         <div
@@ -553,10 +606,10 @@ export default function NanyangCupGroupDrawApp() {
                         <CardHeader className="pb-3">
                           <div className="flex items-center justify-between">
                             <div>
-                              <div className="text-xs uppercase tracking-[0.25em] text-slate-500">Group Stage</div>
-                              <CardTitle className="mt-1 text-2xl font-black text-white">{group.name}</CardTitle>
+                              <div className="text-xs uppercase tracking-[0.25em] text-slate-500 dark:text-slate-500">Group Stage</div>
+                              <CardTitle className="mt-1 text-2xl font-black text-slate-950 dark:text-white">{group.name}</CardTitle>
                             </div>
-                            <Badge className="rounded-full border border-white/10 bg-white/10 text-slate-100">
+                            <Badge className="rounded-full border border-slate-200/80 bg-slate-100/80 text-slate-700 dark:border-white/10 dark:bg-white/10 dark:text-slate-100">
                               {visibleTeams.length}/{group.teams.length}
                             </Badge>
                           </div>
@@ -577,7 +630,7 @@ export default function NanyangCupGroupDrawApp() {
                                     className={`flex items-center gap-3 rounded-2xl border p-3 ${
                                       isNewReveal
                                         ? "border-amber-300/40 bg-amber-300/10 shadow-lg shadow-amber-500/10"
-                                        : "border-white/8 bg-[#121933]/80"
+                                        : "border-slate-200/80 bg-slate-50 dark:border-white/8 dark:bg-[#121933]/80"
                                     }`}
                                   >
                                     <div
@@ -589,7 +642,7 @@ export default function NanyangCupGroupDrawApp() {
                                     >
                                       {idx + 1}
                                     </div>
-                                    <div className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-100">
+                                    <div className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
                                       {team}
                                     </div>
                                   </motion.div>
@@ -622,14 +675,14 @@ export default function NanyangCupGroupDrawApp() {
                                   className={`flex items-center gap-3 rounded-2xl border p-3 ${
                                     isRollingSlot
                                       ? "border-amber-300/30 bg-amber-300/10"
-                                      : "border-dashed border-white/10 bg-[#0c1022]/60"
+                                      : "border-dashed border-slate-200/80 bg-slate-100/80 dark:border-white/10 dark:bg-[#0c1022]/60"
                                   }`}
                                 >
                                   <div
                                     className={`flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold ${
                                       isRollingSlot
                                         ? "border border-amber-300/30 bg-amber-300/15 text-amber-100"
-                                        : "border border-white/10 bg-white/5 text-slate-500"
+                                        : "border border-slate-200/80 bg-white text-slate-500 dark:border-white/10 dark:bg-white/5"
                                     }`}
                                   >
                                     {isRollingSlot ? "!" : "?"}
@@ -663,17 +716,17 @@ export default function NanyangCupGroupDrawApp() {
                 return (
                   <Card
                     key={`${group.name}-fixtures`}
-                    className="overflow-hidden rounded-[28px] border border-white/10 bg-white/5 shadow-xl backdrop-blur-xl"
+                    className="overflow-hidden rounded-[28px] border border-slate-200/80 bg-white/80 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-white/5"
                   >
                     <div className="h-1 bg-gradient-to-r from-cyan-400 via-blue-500 to-violet-500" />
                     <CardHeader>
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <CardTitle className="flex items-center gap-2 text-2xl font-black text-white">
+                          <CardTitle className="flex items-center gap-2 text-2xl font-black text-slate-950 dark:text-white">
                             <Swords className="h-5 w-5 text-cyan-300" />
                             {group.name} 对阵表
                           </CardTitle>
-                          <CardDescription className="mt-2 text-slate-400">
+                          <CardDescription className="mt-2 text-slate-500 dark:text-slate-400">
                             {group.teams.join(" / ")}
                           </CardDescription>
                         </div>
@@ -686,9 +739,9 @@ export default function NanyangCupGroupDrawApp() {
                       {rounds.map((round) => (
                         <div
                           key={`${group.name}-round-${round.round}`}
-                          className="rounded-[24px] border border-white/10 bg-[#0d142d]/80 p-4"
+                          className="rounded-[24px] border border-slate-200/80 bg-slate-50 p-4 dark:border-white/10 dark:bg-[#0d142d]/80"
                         >
-                          <div className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-200">
+                          <div className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-200">
                             <Zap className="h-4 w-4 text-amber-300" />
                             第 {round.round} 轮
                           </div>
@@ -696,15 +749,15 @@ export default function NanyangCupGroupDrawApp() {
                             {round.matches.map((match, idx) => (
                               <div
                                 key={`${group.name}-${round.round}-${idx}`}
-                                className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-3"
+                                className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-2xl border border-slate-200/80 bg-white px-3 py-3 dark:border-white/10 dark:bg-white/5"
                               >
-                                <div className="truncate text-right text-sm font-semibold text-slate-100">
+                                <div className="truncate text-right text-sm font-semibold text-slate-900 dark:text-slate-100">
                                   {match.teamA}
                                 </div>
                                 <div className="rounded-full border border-fuchsia-400/30 bg-fuchsia-500/15 px-3 py-1 text-xs font-black tracking-[0.2em] text-fuchsia-200">
                                   VS
                                 </div>
-                                <div className="truncate text-left text-sm font-semibold text-slate-100">
+                                <div className="truncate text-left text-sm font-semibold text-slate-900 dark:text-slate-100">
                                   {match.teamB}
                                 </div>
                               </div>
@@ -720,14 +773,14 @@ export default function NanyangCupGroupDrawApp() {
           </TabsContent>
 
           <TabsContent value="teams">
-            <Card className="overflow-hidden rounded-[28px] border border-white/10 bg-white/5 shadow-xl backdrop-blur-xl">
+            <Card className="overflow-hidden rounded-[28px] border border-slate-200/80 bg-white/80 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
               <div className="h-1 bg-gradient-to-r from-amber-400 via-orange-500 to-red-500" />
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-2xl font-black text-white">
+                <CardTitle className="flex items-center gap-2 text-2xl font-black text-slate-950 dark:text-white">
                   <Users className="h-5 w-5 text-amber-300" />
                   全部参赛队伍
                 </CardTitle>
-                <CardDescription className="text-slate-400">当前已载入的 28 支战队名单</CardDescription>
+                <CardDescription className="text-slate-500 dark:text-slate-400">当前已载入的 28 支战队名单</CardDescription>
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-[520px] pr-3">
@@ -735,10 +788,10 @@ export default function NanyangCupGroupDrawApp() {
                     {teams.map((team, idx) => (
                       <div
                         key={team}
-                        className="rounded-2xl border border-white/10 bg-[#10172f]/80 p-3 transition-all duration-300 hover:border-amber-400/30 hover:bg-[#141d3e]"
+                        className="rounded-2xl border border-slate-200/80 bg-slate-50 p-3 transition-all duration-300 hover:border-amber-400/30 hover:bg-white dark:border-white/10 dark:bg-[#10172f]/80 dark:hover:bg-[#141d3e]"
                       >
-                        <div className="text-xs uppercase tracking-[0.2em] text-slate-500">Team #{idx + 1}</div>
-                        <div className="mt-1 text-sm font-semibold text-slate-100">{team}</div>
+                        <div className="text-xs uppercase tracking-[0.2em] text-slate-500 dark:text-slate-500">Team #{idx + 1}</div>
+                        <div className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">{team}</div>
                       </div>
                     ))}
                   </div>
@@ -748,8 +801,8 @@ export default function NanyangCupGroupDrawApp() {
           </TabsContent>
         </Tabs>
 
-        <div className="mt-6 rounded-[28px] border border-white/10 bg-white/5 p-5 text-sm leading-7 text-slate-300 backdrop-blur-xl">
-          <span className="font-semibold text-white">新加效果：</span>
+        <div className="mt-6 rounded-[28px] border border-slate-200/80 bg-white/80 p-5 text-sm leading-7 text-slate-600 backdrop-blur-xl dark:border-white/10 dark:bg-white/5 dark:text-slate-300">
+          <span className="font-semibold text-slate-950 dark:text-white">新加效果：</span>
           已升级为滚动式公开抽签。点击“开始抽签动画”后，会先快速滚动候选队伍，再锁定到对应小组位置，适合现场投屏和直播展示。
         </div>
       </div>
