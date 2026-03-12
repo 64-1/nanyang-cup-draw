@@ -1,16 +1,95 @@
-# React + Vite
+# Nanyang Cup Group Draw
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Standalone React + Vite app for group draw, reveal animation, and round-robin fixture generation.
 
-Currently, two official plugins are available:
+## Local run
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Install dependencies:
 
-## React Compiler
+```bash
+npm install
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Start the local dev server:
 
-## Expanding the ESLint configuration
+```bash
+npm run dev
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Share on the same Wi-Fi / local network
+
+Start Vite in host mode:
+
+```bash
+npm run dev:host
+```
+
+Vite will print a local network URL such as:
+
+```bash
+http://192.168.1.23:5173
+```
+
+Anyone on the same network can open that URL.
+
+Notes:
+
+- Your firewall may ask for permission the first time.
+- This is for temporary sharing during testing.
+- The app stops being accessible when your laptop sleeps or the dev server stops.
+
+## Production build
+
+Create the static production files:
+
+```bash
+npm run build
+```
+
+Preview the production build locally:
+
+```bash
+npm run preview
+```
+
+Or preview it on your local network:
+
+```bash
+npm run preview:host
+```
+
+## Publish for public access
+
+The easiest option is Vercel.
+
+This project already includes [vercel.json](/Users/floraliu/Documents/Projects/WZRY/website/nanyang-cup-draw/vercel.json), so build settings are explicit.
+
+### Option 1: Vercel dashboard
+
+1. Push this folder to GitHub.
+2. Go to Vercel and import the repository.
+3. Set the project root to `nanyang-cup-draw` if the repo contains other folders.
+4. Vercel will use the checked-in config automatically.
+5. Deploy.
+
+### Option 2: Vercel CLI
+
+```bash
+npm i -g vercel
+vercel
+```
+
+For production deployment:
+
+```bash
+vercel --prod
+```
+
+## Current stack
+
+- React
+- Vite
+- Tailwind CSS v4
+- Framer Motion
+- Lucide React
+- shadcn-style UI components
