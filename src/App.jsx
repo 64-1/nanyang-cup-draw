@@ -16,7 +16,6 @@ import {
   Sparkles,
   Shield,
   Zap,
-  Play,
   Wand2,
 } from "lucide-react";
 
@@ -183,6 +182,7 @@ export default function NanyangCupGroupDrawApp() {
   const [rollingTeam, setRollingTeam] = useState("");
   const [rollingGroupIndex, setRollingGroupIndex] = useState(null);
   const [prefersDark, setPrefersDark] = useState(() => window.matchMedia("(prefers-color-scheme: dark)").matches);
+  const [pendingAnimatedRedraw, setPendingAnimatedRedraw] = useState(false);
 
   const intervalRef = useRef(null);
   const timeoutRef = useRef(null);
@@ -267,13 +267,6 @@ export default function NanyangCupGroupDrawApp() {
     setGroupCountInput(String(safeValue));
   };
 
-  const redraw = () => {
-    if (isAnimating) return;
-    const nextSeed = Math.floor(Math.random() * 999999) + 1;
-    setSeedInput(String(nextSeed));
-    setCurrentSeed(nextSeed);
-  };
-
   const copyFixtures = async () => {
     const text = buildFixtureText(groups);
     await navigator.clipboard.writeText(text);
@@ -290,7 +283,7 @@ export default function NanyangCupGroupDrawApp() {
     setRevealedCounts(groups.map((group) => group.teams.length));
   };
 
-  const startDrawAnimation = () => {
+  const playDrawAnimation = () => {
     if (isAnimating) return;
 
     const revealOrder = buildRevealOrder(groups);
@@ -351,6 +344,21 @@ export default function NanyangCupGroupDrawApp() {
     };
 
     timeoutRef.current = window.setTimeout(revealNext, 1400);
+  };
+
+  useEffect(() => {
+    if (!pendingAnimatedRedraw || isAnimating) return;
+    setPendingAnimatedRedraw(false);
+    playDrawAnimation();
+  }, [pendingAnimatedRedraw, isAnimating, groups]);
+
+  const startDrawAnimation = () => {
+    if (isAnimating) return;
+
+    const nextSeed = Math.floor(Math.random() * 999999) + 1;
+    setSeedInput(String(nextSeed));
+    setCurrentSeed(nextSeed);
+    setPendingAnimatedRedraw(true);
   };
 
   return (
@@ -464,15 +472,7 @@ export default function NanyangCupGroupDrawApp() {
                     </div>
                   </div>
 
-                  <div className="grid gap-2 md:grid-cols-2">
-                    <Button
-                      onClick={redraw}
-                      className="rounded-2xl bg-gradient-to-r from-fuchsia-500 to-violet-500 text-white hover:opacity-90"
-                      disabled={isAnimating}
-                    >
-                      <Shuffle className="mr-2 h-4 w-4" />
-                      重新抽签
-                    </Button>
+                  <div className="grid gap-2">
                     <Button
                       onClick={copyFixtures}
                       variant="secondary"
@@ -489,8 +489,8 @@ export default function NanyangCupGroupDrawApp() {
                     className="w-full rounded-2xl bg-gradient-to-r from-amber-400 via-orange-400 to-rose-500 text-slate-950 hover:opacity-90"
                     disabled={isAnimating}
                   >
-                    {isAnimating ? <Wand2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
-                    {isAnimating ? "抽签动画进行中" : "开始抽签动画"}
+                    {isAnimating ? <Wand2 className="mr-2 h-4 w-4 animate-spin" /> : <Shuffle className="mr-2 h-4 w-4" />}
+                    {isAnimating ? "抽签动画进行中" : "重新抽签并播放动画"}
                   </Button>
 
                   <div className="flex flex-wrap gap-2 pt-1">
