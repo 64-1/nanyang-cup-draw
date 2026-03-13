@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 
 const DEFAULT_TEAMS = [
-  "国际王者荣耀冲锋队",
   "南洋勾兑",
   "农奴队",
   "跨境科研团伙",
@@ -41,7 +40,6 @@ const DEFAULT_TEAMS = [
   "谁是破绽哥",
   "农药小队",
   "你说的都队",
-  "米波航空队",
   "云轫战队",
   "蜜雪冰城",
   "comp2006",
