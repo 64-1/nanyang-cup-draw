@@ -174,6 +174,7 @@ export default function NanyangCupGroupDrawApp() {
   const [groupCountInput, setGroupCountInput] = useState("8");
   const [seedInput, setSeedInput] = useState(String(Date.now()).slice(-6));
   const [currentSeed, setCurrentSeed] = useState(Number(String(Date.now()).slice(-6)));
+  const [hasDrawStarted, setHasDrawStarted] = useState(false);
   const [teams] = useState(DEFAULT_TEAMS);
   const [copied, setCopied] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -197,6 +198,9 @@ export default function NanyangCupGroupDrawApp() {
     }, 0);
   }, [groups]);
 
+  const displayedGroups = hasDrawStarted ? groups : [];
+  const displayedTotalMatches = hasDrawStarted ? totalMatches : 0;
+
   const clearAnimationTimers = () => {
     if (intervalRef.current) {
       window.clearInterval(intervalRef.current);
@@ -209,13 +213,21 @@ export default function NanyangCupGroupDrawApp() {
   };
 
   useEffect(() => {
+    if (!hasDrawStarted) {
+      setRevealedCounts([]);
+      setActiveReveal(null);
+      setRollingTeam("");
+      setRollingGroupIndex(null);
+      return;
+    }
+
     if (!isAnimating) {
       setRevealedCounts(groups.map((group) => group.teams.length));
       setActiveReveal(null);
       setRollingTeam("");
       setRollingGroupIndex(null);
     }
-  }, [groups, isAnimating]);
+  }, [groups, hasDrawStarted, isAnimating]);
 
   useEffect(() => {
     return () => {
@@ -268,6 +280,7 @@ export default function NanyangCupGroupDrawApp() {
   };
 
   const copyFixtures = async () => {
+    if (!hasDrawStarted) return;
     const text = buildFixtureText(groups);
     await navigator.clipboard.writeText(text);
     setCopied(true);
@@ -355,6 +368,7 @@ export default function NanyangCupGroupDrawApp() {
   const startDrawAnimation = () => {
     if (isAnimating) return;
 
+    setHasDrawStarted(true);
     const nextSeed = Math.floor(Math.random() * 999999) + 1;
     setSeedInput(String(nextSeed));
     setCurrentSeed(nextSeed);
@@ -409,7 +423,7 @@ export default function NanyangCupGroupDrawApp() {
                 </div>
                 <div className="rounded-2xl border border-violet-400/20 bg-violet-400/10 px-4 py-3">
                   <div className="text-xs text-violet-100/70">总对局数</div>
-                  <div className="mt-1 text-2xl font-bold text-violet-200">{totalMatches}</div>
+                  <div className="mt-1 text-2xl font-bold text-violet-200">{displayedTotalMatches}</div>
                 </div>
               </div>
             </div>
@@ -477,7 +491,7 @@ export default function NanyangCupGroupDrawApp() {
                       onClick={copyFixtures}
                       variant="secondary"
                       className="rounded-2xl border border-white/10 bg-white/10 text-white hover:bg-white/15"
-                      disabled={isAnimating}
+                      disabled={isAnimating || !hasDrawStarted}
                     >
                       <Copy className="mr-2 h-4 w-4" />
                       {copied ? "已复制" : "复制对阵表"}
@@ -490,7 +504,7 @@ export default function NanyangCupGroupDrawApp() {
                     disabled={isAnimating}
                   >
                     {isAnimating ? <Wand2 className="mr-2 h-4 w-4 animate-spin" /> : <Shuffle className="mr-2 h-4 w-4" />}
-                    {isAnimating ? "抽签动画进行中" : "重新抽签并播放动画"}
+                    {isAnimating ? "抽签动画进行中" : hasDrawStarted ? "重新抽签并播放动画" : "开始抽签动画"}
                   </Button>
 
                   <div className="flex flex-wrap gap-2 pt-1">
@@ -569,7 +583,7 @@ export default function NanyangCupGroupDrawApp() {
           <TabsContent value="draw" className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
               <AnimatePresence>
-                {groups.map((group, groupIndex) => {
+                {displayedGroups.map((group, groupIndex) => {
                   const visibleTeams = group.teams.slice(0, revealedCounts[groupIndex] || 0);
                   const unrevealedCount = group.teams.length - visibleTeams.length;
                   const isActiveGroup = activeReveal?.groupIndex === groupIndex;
@@ -705,11 +719,27 @@ export default function NanyangCupGroupDrawApp() {
                 })}
               </AnimatePresence>
             </div>
+            {!hasDrawStarted && (
+              <Card className="rounded-[28px] border border-dashed border-slate-300/80 bg-white/70 shadow-xl backdrop-blur-xl dark:border-white/15 dark:bg-white/5">
+                <CardContent className="flex min-h-[260px] flex-col items-center justify-center gap-4 text-center">
+                  <div className="rounded-full border border-fuchsia-400/25 bg-fuchsia-400/10 p-4">
+                    <Shuffle className="h-8 w-8 text-fuchsia-300" />
+                  </div>
+                  <div>
+                    <div className="text-xl font-bold text-slate-900 dark:text-white">等待开始抽签</div>
+                    <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                      当前页面保持空白展示。点击上方按钮后才会生成分组结果并播放公开抽签动画。
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="fixtures" className="space-y-4">
-            <div className="grid gap-4 xl:grid-cols-2">
-              {groups.map((group) => {
+            {hasDrawStarted ? (
+              <div className="grid gap-4 xl:grid-cols-2">
+                {groups.map((group) => {
                 const rounds = generateRoundRobin(group.teams);
                 return (
                   <Card
@@ -766,8 +796,15 @@ export default function NanyangCupGroupDrawApp() {
                     </CardContent>
                   </Card>
                 );
-              })}
-            </div>
+                })}
+              </div>
+            ) : (
+              <Card className="rounded-[28px] border border-dashed border-slate-300/80 bg-white/70 shadow-xl backdrop-blur-xl dark:border-white/15 dark:bg-white/5">
+                <CardContent className="flex min-h-[220px] items-center justify-center text-center text-sm text-slate-500 dark:text-slate-400">
+                  尚未生成对阵表。先点击“开始抽签动画”完成首次抽签。
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="teams">
